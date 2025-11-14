@@ -82,6 +82,9 @@ class DeepEPLLPrepareAndFinalize(mk.FusedMoEPrepareAndFinalize):
         max_tokens_per_rank: int,
         num_dispatchers: int,
         use_fp8_dispatch: bool = False,
+        global_to_physical: torch.Tensor | None = None,
+        physical_to_global: torch.Tensor | None = None,
+        local_expert_global_ids: torch.Tensor | None = None,
     ):
         super().__init__()
 
@@ -93,9 +96,11 @@ class DeepEPLLPrepareAndFinalize(mk.FusedMoEPrepareAndFinalize):
         # combine function.
         self.handles: list[tuple | None] = [None, None]
         self.num_dispatchers_ = num_dispatchers
-        self.global_to_physical: torch.Tensor | None = None
-        self.physical_to_global: torch.Tensor | None = None
-        self.local_expert_global_ids: torch.Tensor | None = None
+        topk_indices_dtype = self.topk_indices_dtype()
+        self.global_to_physical = global_to_physical.to(topk_indices_dtype)
+        self.physical_to_global = physical_to_global.to(topk_indices_dtype)
+        self.local_expert_global_ids = \
+            local_expert_global_ids.to(topk_indices_dtype)
 
     def num_dispatchers(self) -> int:
         return self.num_dispatchers_
@@ -113,27 +118,17 @@ class DeepEPLLPrepareAndFinalize(mk.FusedMoEPrepareAndFinalize):
     def topk_indices_dtype(self) -> torch.dtype | None:
         return torch.int64
 
-    def set_expert_routing_info(
-        self,
-        global_to_physical: torch.Tensor,
-        physical_to_global: torch.Tensor,
-        local_expert_global_ids: torch.Tensor,
-    ) -> None:
-        self.global_to_physical = global_to_physical
-        self.physical_to_global = physical_to_global
-        self.local_expert_global_ids = local_expert_global_ids
-
     def _map_global_to_physical_ids(self, topk_ids: torch.Tensor) -> torch.Tensor:
         if self.global_to_physical is None:
             return topk_ids
-        physical = self.global_to_physical[topk_ids.to(torch.long)]
-        return physical.to(topk_ids.dtype)
+        physical = self.global_to_physical[topk_ids]
+        return physical
 
     def _map_local_to_global_ids(self, expert_topk_ids: torch.Tensor) -> torch.Tensor:
         if self.local_expert_global_ids is None:
             return expert_topk_ids
-        global_ids = self.local_expert_global_ids[expert_topk_ids.to(torch.long)]
-        return global_ids.to(expert_topk_ids.dtype)
+        global_ids = self.local_expert_global_ids[expert_topk_ids]
+        return global_ids
 
     def _do_quant(
         self,

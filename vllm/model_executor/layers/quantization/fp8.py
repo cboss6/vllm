@@ -1015,7 +1015,9 @@ class Fp8MoEMethod(FusedMoEMethodBase):
                     layer.w2_weight_scale_inv
                 )
 
-    def maybe_make_prepare_finalize(self) -> mk.FusedMoEPrepareAndFinalize | None:
+    def maybe_make_prepare_finalize(
+        self, layer: torch.nn.Module | None = None
+    ) -> mk.FusedMoEPrepareAndFinalize | None:
         if (
             self.rocm_aiter_moe_enabled
             or self.use_marlin
@@ -1029,7 +1031,7 @@ class Fp8MoEMethod(FusedMoEMethodBase):
             logger.debug_once("%s", prepare_finalize.__class__.__name__)
             return prepare_finalize
         else:
-            return super().maybe_make_prepare_finalize()
+            return super().maybe_make_prepare_finalize(layer)
 
     def select_gemm_impl(
         self,

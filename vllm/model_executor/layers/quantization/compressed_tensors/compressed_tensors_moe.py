@@ -379,11 +379,13 @@ class CompressedTensorsW4A4MoeMethod(CompressedTensorsMoEMethod):
             (layer.w2_input_global_scale), requires_grad=False
         )
 
-    def maybe_make_prepare_finalize(self) -> mk.FusedMoEPrepareAndFinalize | None:
+    def maybe_make_prepare_finalize(
+        self, layer: torch.nn.Module | None = None
+    ) -> mk.FusedMoEPrepareAndFinalize | None:
         if self.use_marlin:
             return None
         elif not self.allow_flashinfer:
-            return super().maybe_make_prepare_finalize()
+            return super().maybe_make_prepare_finalize(layer)
 
         prepare_finalize = build_flashinfer_fp4_cutlass_moe_prepare_finalize(self.moe)
         logger.debug_once("%s", prepare_finalize.__class__.__name__)
@@ -889,11 +891,13 @@ class CompressedTensorsW8A8Fp8MoEMethod(CompressedTensorsMoEMethod):
                     layer.w2_weight_scale
                 )
 
-    def maybe_make_prepare_finalize(self) -> mk.FusedMoEPrepareAndFinalize | None:
+    def maybe_make_prepare_finalize(
+        self, layer: torch.nn.Module | None = None
+    ) -> mk.FusedMoEPrepareAndFinalize | None:
         if self.use_marlin or self.rocm_aiter_moe_enabled:
             return None
         else:
-            return super().maybe_make_prepare_finalize()
+            return super().maybe_make_prepare_finalize(layer)
 
     def select_gemm_impl(
         self,

@@ -365,7 +365,7 @@ class ModelOptFp8MoEMethod(FusedMoEMethodBase):
             )
 
     def maybe_make_prepare_finalize(
-        self,
+        self, layer: torch.nn.Module | None = None
     ) -> mk.FusedMoEPrepareAndFinalize | None:
         # TRT LLM not supported with all2all yet.
         if self.flashinfer_moe_backend == FlashinferMoeBackend.TENSORRT_LLM:
@@ -377,7 +377,7 @@ class ModelOptFp8MoEMethod(FusedMoEMethodBase):
             logger.debug_once("%s", prepare_finalize.__class__.__name__)
             return prepare_finalize
         else:
-            return super().maybe_make_prepare_finalize()
+            return super().maybe_make_prepare_finalize(layer)
 
     def select_gemm_impl(
         self,
@@ -1171,7 +1171,9 @@ class ModelOptNvFp4FusedMoE(FusedMoEMethodBase):
                 " for ModelOptNvFp4FusedMoE."
             )
 
-    def maybe_make_prepare_finalize(self) -> mk.FusedMoEPrepareAndFinalize | None:
+    def maybe_make_prepare_finalize(
+        self, layer: torch.nn.Module | None = None
+    ) -> mk.FusedMoEPrepareAndFinalize | None:
         if self.use_marlin or (
             self.allow_flashinfer
             and self.flashinfer_moe_backend == FlashinferMoeBackend.TENSORRT_LLM
@@ -1188,7 +1190,7 @@ class ModelOptNvFp4FusedMoE(FusedMoEMethodBase):
             logger.debug_once("%s", prepare_finalize.__class__.__name__)
             return prepare_finalize
         else:
-            return super().maybe_make_prepare_finalize()
+            return super().maybe_make_prepare_finalize(layer)
 
     def select_gemm_impl(
         self,
