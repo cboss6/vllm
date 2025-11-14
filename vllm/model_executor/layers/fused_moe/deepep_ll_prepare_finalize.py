@@ -99,8 +99,7 @@ class DeepEPLLPrepareAndFinalize(mk.FusedMoEPrepareAndFinalize):
         topk_indices_dtype = self.topk_indices_dtype()
         self.global_to_physical = global_to_physical.to(topk_indices_dtype)
         self.physical_to_global = physical_to_global.to(topk_indices_dtype)
-        self.local_expert_global_ids = \
-            local_expert_global_ids.to(topk_indices_dtype)
+        self.local_expert_global_ids = local_expert_global_ids.to(topk_indices_dtype)
 
     def num_dispatchers(self) -> int:
         return self.num_dispatchers_

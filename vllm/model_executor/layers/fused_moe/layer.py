@@ -1408,7 +1408,6 @@ class FusedMoE(CustomOp):
                 None,
                 None,
             )
-            self.expert_placement_strategy = "linear"
 
         self.top_k = top_k
 
@@ -1623,6 +1622,14 @@ class FusedMoE(CustomOp):
     def _maybe_init_expert_routing_tables(
         self,
     ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor] | None:
+        # Currently this helper is only used for round-robin expert placement
+        # with DeepEP low-latency kernels.
+        if (
+            self.expert_placement_strategy != "round_robin"
+            or not self.use_deepep_ll_kernels
+        ):
+            return None
+
         if hasattr(self, "expert_global_to_physical"):
             return (
                 self.expert_global_to_physical,
@@ -1656,8 +1663,6 @@ class FusedMoE(CustomOp):
         local_num_experts: int,
         device: torch.device | None = None,
     ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor] | None:
-        # This helper is only relevant for round-robin expert placement.
-
         device_kwargs = {"device": device} if device is not None else {}
         global_indices = torch.arange(
             global_num_experts, dtype=torch.long, **device_kwargs
